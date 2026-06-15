@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công cụ Rút gọn Link</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --text: #0f172a;
+            --gray: #64748b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        /* Thanh điều hướng chứa link trang web của bạn */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); text-decoration: none; }
+        .nav-links a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            color: var(--gray);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        
+        /* Khu vực chính */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+        p.subtitle { color: var(--gray); margin-bottom: 2rem; font-size: 1.1rem; }
+        
+        /* Form nhập link */
+        .shortener-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        .input-group { display: flex; gap: 10px; margin-bottom: 1rem; }
+        input[type="url"] {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+        input[type="url"]:focus { border-color: var(--primary); }
+        button {
+            padding: 1rem 2rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1d4ed8; }
+        
+        /* Khu vực kết quả */
+        #result-box {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #eff6ff;
+            border: 1px dashed var(--primary);
+            border-radius: 8px;
+            text-align: left;
+        }
+        #short-link { font-weight: bold; color: var(--primary); font-size: 1.2rem; word-break: break-all; }
+        .copy-btn {
+            margin-top: 10px; padding: 0.5rem 1rem; background: var(--text); font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="#" class="logo">ShortLink</a>
+        <div class="nav-links">
+            <a href="https://trangwebcuaban.com" target="_blank">Trang chủ của tôi</a>
+            <a href="https://trangwebcuaban.com/portfolio" target="_blank">Portfolio Thiết kế</a>
+            <a href="mailto:emailcuaban@gmail.com">Liên hệ</a>
+        </div>
+    </nav>
+
+    <main>
+        <h1>Rút gọn liên kết của bạn</h1>
+        <p class="subtitle">Nhanh chóng, an toàn và hoàn toàn miễn phí.</p>
+        
+        <div class="shortener-box">
+            <div class="input-group">
+                <input type="url" id="longUrl" placeholder="Dán đường dẫn dài vào đây..." required>
+                <button onclick="shortenUrl()" id="submitBtn">Rút gọn</button>
+            </div>
+            
+            <div id="result-box">
+                <p style="color: var(--gray); margin-bottom: 5px;">Link rút gọn của bạn:</p>
+                <a href="#" id="short-link" target="_blank"></a><br>
+                <button class="copy-btn" onclick="copyToClipboard()">Sao chép Link</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // API URL - Sẽ trỏ về Backend Python của bạn
+        const API_URL = "http://127.0.0.1:8000"; 
+
+        async function shortenUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            const btn = document.getElementById('submitBtn');
+            const resultBox = document.getElementById('result-box');
+            const shortLinkTag = document.getElementById('short-link');
+
+            if(!longUrl) { alert("Vui lòng nhập link!"); return; }
+
+            btn.innerText = "Đang xử lý...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/shorten`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: longUrl })
+                });
+                
+                const data = await response.json();
+                
+                if(response.ok) {
+                    const finalLink = `${API_URL}/${data.short_code}`;
+                    shortLinkTag.href = finalLink;
+                    shortLinkTag.innerText = finalLink;
+                    resultBox.style.display = "block";
+                } else {
+                    alert("Có lỗi xảy ra: " + data.detail);
+                }
+            } catch (error) {
+                alert("Không thể kết nối đến máy chủ.");
+            }
+
+            btn.innerText = "Rút gọn";
+            btn.disabled = false;
+        }
+
+        function copyToClipboard() {
+            const linkText = document.getElementById('short-link').innerText;
+            navigator.clipboard.writeText(linkText);
+            alert("Đã sao chép vào clipboard!");
+        }
+    </script>
+</body>
+</html>
